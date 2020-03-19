@@ -88,7 +88,7 @@ public class FMTB {
 	
 	public static final String deftitle = "[FPS:%s] Fexcraft Modelling Toolbox - %s";
 	public static final String deftitle0 = "Fexcraft Modelling Toolbox - %s";
-	public static final String version = "2.0.5";
+	public static final String VERSION = "2.1.0";
 	public static final String CLID = "587016218196574209";
 	//
 	public static GGR ggr;
@@ -114,7 +114,7 @@ public class FMTB {
 	
 	public static void main(String... args) throws Exception {
         System.setProperty("joml.nounsafe", Boolean.TRUE.toString());
-        System.setProperty("java.awt.headless", Boolean.TRUE.toString());
+        //System.setProperty("java.awt.headless", Boolean.TRUE.toString());
 	    System.setProperty("org.lwjgl.librarypath", new File("./lib/").getAbsolutePath());
 		Configuration.SHARED_LIBRARY_EXTRACT_DIRECTORY.set("./lib");
 		Configuration.SHARED_LIBRARY_EXTRACT_PATH.set("./lib");
@@ -145,34 +145,38 @@ public class FMTB {
 		glfwShowWindow(window);
 		//
 		NO_POLYGON_SELECTED = Translator.translate("error.no_polygon_selected");
-		if(!Settings.darktheme()){
-	        Themes.setDefaultTheme(new FlatColoredTheme(
-				rgba(245, 245, 245, 1), // backgroundColor
-		        rgba(176, 190, 197, 1), // borderColor
-		        rgba(176, 190, 197, 1), // sliderColor
-		        rgba(100, 181, 246, 1), // strokeColor
-		        rgba(165, 214, 167, 1), // allowColor
-		        rgba(239, 154, 154, 1), // denyColor
-		        ColorConstants.transparent(), // shadowColor
-	            ColorConstants.darkGray(), // text color
-	            FontRegistry.DEFAULT, // font
-	            20f //font size
-	        ));
-		}
-		else{
-	        Themes.setDefaultTheme(new FlatColoredTheme(
-	            rgba(33, 33, 33, 1), // backgroundColor
-	            rgba(97, 97, 97, 1), // borderColor
-	            rgba(97, 97, 97, 1), // sliderColor
-	            rgba(2, 119, 189, 1), // strokeColor
-	            rgba(27, 94, 32, 1), // allowColor
-	            rgba(183, 28, 28, 1), // denyColor
-	            ColorConstants.transparent(),  // shadowColor
-	            ColorConstants.lightGray(), //text color
-	            FontRegistry.DEFAULT, // font
-	            20f //font size
-	        ));
-		}
+		Settings.THEME_CHANGE_LISTENER.add(bool -> {
+			if(bool){
+		        Themes.setDefaultTheme(new FlatColoredTheme(
+		            rgba(33, 33, 33, 1), // backgroundColor
+		            rgba(97, 97, 97, 1), // borderColor
+		            rgba(97, 97, 97, 1), // sliderColor
+		            rgba(2, 119, 189, 1), // strokeColor
+		            rgba(27, 94, 32, 1), // allowColor
+		            rgba(183, 28, 28, 1), // denyColor
+		            ColorConstants.transparent(),  // shadowColor
+		            ColorConstants.lightGray(), //text color
+		            FontRegistry.DEFAULT, // font
+		            20f //font size
+		        ));
+			}
+			else{
+		        Themes.setDefaultTheme(new FlatColoredTheme(
+					rgba(245, 245, 245, 1), // backgroundColor
+			        rgba(176, 190, 197, 1), // borderColor
+			        rgba(176, 190, 197, 1), // sliderColor
+			        rgba(100, 181, 246, 1), // strokeColor
+			        rgba(165, 214, 167, 1), // allowColor
+			        rgba(239, 154, 154, 1), // denyColor
+			        ColorConstants.transparent(), // shadowColor
+		            ColorConstants.darkGray(), // text color
+		            FontRegistry.DEFAULT, // font
+		            20f //font size
+		        ));
+			}
+	        if(frame != null) Themes.getDefaultTheme().applyAll(frame);
+		});
+		Settings.updateTheme();
         frame = new Frame(WIDTH, HEIGHT);
         //frame.getContainer().add(new Interface());
         Trees.initializeTrees(frame);
@@ -186,7 +190,7 @@ public class FMTB {
         keeper.getChainKeyCallback().add(new GLFWKeyCallback(){
             @Override
             public void invoke(long window, int key, int scancode, int action, int mods){
-            	if(key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) reset(); 
+            	if(key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) reset();
             	if(context.getFocusedGui() instanceof Field || context.getFocusedGui() instanceof TextField) return;
     			KeyCompound.process(window, key, scancode, action, mods);
             }
@@ -219,6 +223,11 @@ public class FMTB {
 			@Override
 			public void invoke(long window, double xoffset, double yoffset){
 				if(!Settings.no_scroll_fields() && (field_scrolled = (context.getFocusedGui() instanceof Field))){
+					if(!context.getFocusedGui().isHovered()){
+						context.setFocusedGui(null);
+						field_scrolled = false;
+						return;
+					}
 					Field field = (Field)context.getFocusedGui();
 					if(field.id() != null || field.update() != null) field.onScroll(yoffset);
 				}
@@ -230,6 +239,7 @@ public class FMTB {
 		SystemEventProcessor.addDefaultCallbacks(keeper, systemEventProcessor);
         renderer = new NvgRenderer();
         renderer.initialize();
+		Settings.updateTheme();
         //
 		ggr = new GGR(0, 4, 4); ggr.rotation.xCoord = 45;
 		PorterManager.load(); HelperCollector.reload();
@@ -526,17 +536,17 @@ public class FMTB {
 				if(obj.has("blocked_versions")){
 					JsonArray array = obj.get("blocked_versions").getAsJsonArray();
 					for(JsonElement elm : array){
-						if(elm.isJsonPrimitive() && elm.getAsString().equals(version)){
+						if(elm.isJsonPrimitive() && elm.getAsString().equals(VERSION)){
 							Print.console("Blocked version detected, causing panic.");
 							System.exit(2); System.exit(2); System.exit(2); System.exit(2);
 						}
 					}
 				}
-				String newver = obj.get("latest_version").getAsString(); boolean bool = version.equals(newver);
+				String newver = obj.get("latest_version").getAsString(); boolean bool = VERSION.equals(newver);
 				String welcome = Translator.translate("dialog.welcome.title");
-				String cversion = Translator.format("dialog.welcome.version", version);
-				String new_title = Translator.format("dialog.welcome.title_new", newver, version);
-				String new_version = Translator.format("dialog.welcome.version_new", newver, version);
+				String cversion = Translator.format("dialog.welcome.version", VERSION);
+				String new_title = Translator.format("dialog.welcome.title_new", newver, VERSION);
+				String new_version = Translator.format("dialog.welcome.version_new", newver, VERSION);
 				//
 		        Dialog dialog = new Dialog(bool ? welcome : new_title, 300, 100);
 		        Label label = new Label(bool ? cversion : new_version, 10, 10, 200, 20);

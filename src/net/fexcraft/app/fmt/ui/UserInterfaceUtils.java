@@ -90,6 +90,8 @@ public class UserInterfaceUtils {
 		));
 		frame.getContainer().add(new MenuEntry(1, translate("toolbar.utils"),
 			new MenuButton("toolbar.utils.copy_selected", () -> FMTB.MODEL.copyAndSelect()),
+			new MenuButton("toolbar.utils.copy", () -> FMTB.MODEL.copyToClipboard()),
+			new MenuButton("toolbar.utils.paste", () -> FMTB.MODEL.pasteFromClipboard()),
 			new MenuButton("toolbar.utils.undo", NOT_AVAILABLE_YET),
 			new MenuButton("toolbar.utils.redo", NOT_AVAILABLE_YET),
 			new MenuButton("toolbar.utils.flip.left_right", () -> FMTB.MODEL.flipShapeboxes(0)),
@@ -203,7 +205,9 @@ public class UserInterfaceUtils {
 		public Icon(int index, String adress, MouseClickEventListener listener){
 			super(new BufferedImage(adress)); this.setPosition(1 + (index * 31), 1); setSize(28, 28);
 			this.getListenerMap().addListener(MouseClickEvent.class, listener);
-			this.getStyle().setBorderRadius(0);
+			Settings.THEME_CHANGE_LISTENER.add(bool -> {
+				this.getStyle().setBorderRadius(0);
+			});
 		}
 		
 		public Icon(int index, String adress, Runnable run){
@@ -221,17 +225,23 @@ public class UserInterfaceUtils {
 		
 		public MenuEntry(int index, String title, MenuButton... buttons){
 			super(187 + (index * (size + 2)), 1, size, 28);
-			this.getStyle().setBorderRadius(0f);
-			Label tatle = new Label(title, 4, 0, 50, 28);
-			this.add(tatle); tatle.getStyle().setFontSize(28f);
-			Background background = new Background();
-			if(!Settings.darktheme()){
-				background.setColor(new Vector4f(0.9f, 0.9f, 0.9f, 1));
-			}
-			else {
-				background.setColor(new Vector4f(0.2f, 0.2f, 0.2f, 1));
-			}
-			this.getStyle().setBackground(background);
+			Label tatle = new Label(title, 4, 0, 50, 28); 
+			Settings.THEME_CHANGE_LISTENER.add(bool -> {
+				this.getStyle().setBorderRadius(0f);
+				tatle.getStyle().setFontSize(28f);
+				Background background = new Background();
+				if(bool){
+					background.setColor(new Vector4f(0.2f, 0.2f, 0.2f, 1));
+				}
+				else{
+					background.setColor(new Vector4f(0.9f, 0.9f, 0.9f, 1));
+				}
+				this.getStyle().setBackground(background);
+				for(Button button : buttons){
+					button.getStyle().setHorizontalAlign(HorizontalAlign.LEFT);
+				}
+			});
+			this.add(tatle);
 	        this.getListenerMap().addListener(CursorEnterEvent.class, (CursorEnterEventListener)lis -> { if(!lis.isEntered()) this.checkClose(); });
 			//
 			this.buttons = buttons; this.index = index;
@@ -243,9 +253,9 @@ public class UserInterfaceUtils {
 			}
 			for(int i = 0; i < buttons.length; i++){
 				this.add(buttons[i]); buttons[i].hide();
-				buttons[i].setEntry(this); buttons[i].setPosition(1, 28 + (i * 26));
-				buttons[i].getStyle().setFontSize(20f); buttons[i].setSize(size - 2, 24);
-				buttons[i].getStyle().setHorizontalAlign(HorizontalAlign.LEFT);
+				buttons[i].setEntry(this);
+				buttons[i].setPosition(1, 28 + (i * 26));
+				buttons[i].setSize(size - 2, 24);
 			}
 			tatle.getListenerMap().addListener(MouseClickEvent.class, (MouseClickEventListener)event -> { if(event.getAction() == CLICK) toggle(null); });
 			this.getListenerMap().addListener(MouseClickEvent.class, (MouseClickEventListener)event -> { if(event.getAction() == CLICK) toggle(null); });
@@ -276,7 +286,10 @@ public class UserInterfaceUtils {
 		private MenuEntry entry;
 		
 		public MenuButton(String string, Runnable run){
-			super(translate(string)); this.getStyle().setBorderRadius(0f);
+			super(translate(string));
+			Settings.THEME_CHANGE_LISTENER.add(bool -> {
+				this.getStyle().setBorderRadius(0f);
+			});
 	        this.getListenerMap().addListener(MouseClickEvent.class, (MouseClickEventListener)event -> {
 	            if(event.getAction() == CLICK){ run.run(); entry.toggle(false); } else return;
 	        });

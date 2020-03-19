@@ -1,7 +1,9 @@
 package net.fexcraft.app.fmt.utils;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -9,7 +11,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
 import net.fexcraft.app.fmt.FMTB;
-import net.fexcraft.app.fmt.ui.DialogBox;
 import net.fexcraft.app.fmt.wrappers.GroupCompound;
 import net.fexcraft.app.fmt.wrappers.PolygonWrapper;
 import net.fexcraft.app.fmt.wrappers.TurboList;
@@ -24,6 +25,8 @@ public class Settings {
 		discordrpc, discordrpc_sm, discordrpc_rtonm, numberfieldarrows, preview_colorpicker;
 	public static Setting movespeed, mouse_sensivity, internal_cursor, vsync;
 	public static Setting darktheme, no_scroll_fields;
+	//
+	public static final ArrayList<Consumer<Boolean>> THEME_CHANGE_LISTENER = new ArrayList<>();
 
 	public static boolean floor(){ return floor.getValue(); }
 
@@ -223,7 +226,7 @@ public class Settings {
 			}
 		});
 		obj.add("settings", settings);
-		obj.addProperty("last_fmt_version_used", FMTB.version);
+		obj.addProperty("last_fmt_version_used", FMTB.VERSION);
 		obj.addProperty("last_fmt_exit", Time.getAsString(Time.getDate()));
 		JsonUtil.write(new File("./settings.json"), obj);
 	}
@@ -310,13 +313,15 @@ public class Settings {
 		
 		public boolean toggle(){
 			if(value instanceof Boolean){
+				value = !(boolean)value;
 				if(this.id.equals("dark_theme")){
-					DialogBox.showOK(null, null, null, "settingsbox.darktheme.mayneedrestart");
+					//DialogBox.showOK(null, null, null, "settingsbox.darktheme.mayneedrestart");
+					updateTheme();
 				}
 				/*if(this.id.equals("no_scroll_fields")){
 					DialogBox.showOK(null, null, null, "settingsbox.settings_needs_restart");
 				}*/
-				return (boolean)(value = !(boolean)value);
+				return (boolean)value;
 			} else return false;
 		}
 		
@@ -445,6 +450,10 @@ public class Settings {
 			return this == BOOLEAN;
 		}
 		
+	}
+
+	public static void updateTheme(){
+		THEME_CHANGE_LISTENER.forEach(listener -> listener.accept(darktheme.getValue()));
 	}
 
 }
